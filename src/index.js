@@ -1,15 +1,30 @@
-import {d3, search_demo, shift_pattern_naive} from "./kmp.js";
+import {d3, search_demo, pattern_shifts_naive, resettable_loop} from "./kmp.js";
 const width = 1000;
 const height = 100;
 const svg = d3.select("svg")
     .attr("viewBox", [0, 0, width, height]);
 // document.body.append(svg.node());
 
-let text = 'mississippi';
-let pattern = 'sip';
+let form_bound_generator = function(form, generator_fn) {
+  let form_naive_btn = form.getElementsByTagName('button')[0];
 
-// document.getElementById('control').addEventListener('change', function(event){
-//   search_demo
-// })
+  let text = form.querySelector('input[name=main-text]').value;
+  let pattern = form.querySelector('input[name=pattern-text]').value;
 
-search_demo(svg, text,pattern, shift_pattern_naive, {step_delay: 750, final_delay:4000});
+  let generator_fn_closure = () => generator_fn(text, pattern);
+  let generator = resettable_loop(generator_fn_closure);
+
+  form_naive_btn.addEventListener('click', function(event){
+    event.preventDefault();
+    let text = form.querySelector('input[name=main-text]').value;
+    let pattern = form.querySelector('input[name=pattern-text]').value;
+    let generator_fn_closure = () => generator_fn(text, pattern);
+    generator.next(generator_fn_closure);
+  });
+
+  return generator;
+}
+
+let form_naive = document.getElementById('form-naive');
+let generator = form_bound_generator(form_naive, pattern_shifts_naive);
+search_demo(svg, generator, {step_delay: 750, final_delay:4000});
