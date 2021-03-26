@@ -1,0 +1,10 @@
+div.form-input {
+	padding: 5px;
+}
+input[type="text"] {
+	position: absolute;
+	left: 90px;
+	width: 300px;
+}
+
+label { margin-right: 20px; }

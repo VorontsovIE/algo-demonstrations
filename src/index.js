@@ -18,6 +18,8 @@ let form_bound_generator = function(form, generator_fn) {
     event.preventDefault();
     let text = form.querySelector('input[name=main-text]').value;
     let pattern = form.querySelector('input[name=pattern-text]').value;
+    var newurl = `${window.location.pathname}?pattern=${pattern}&text=${text}`;
+    window.history.replaceState({}, '', newurl);
     let generator_fn_closure = () => generator_fn(text, pattern);
     generator.next(generator_fn_closure);
   });
@@ -25,6 +27,14 @@ let form_bound_generator = function(form, generator_fn) {
   return generator;
 }
 
+let url_string = window.location.href;
+let url = new URL(url_string);
+let text = url.searchParams.get('text') || 'mississippi';
+let pattern = url.searchParams.get('pattern') || 'sip';
+
 let form_naive = document.getElementById('form-naive');
+form_naive.querySelector('input[name=main-text]').value = text;
+form_naive.querySelector('input[name=pattern-text]').value = pattern;
+
 let generator = form_bound_generator(form_naive, pattern_shifts_naive);
 search_demo(svg, generator, {step_delay: 750, final_delay:4000});
