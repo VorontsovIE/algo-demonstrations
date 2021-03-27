@@ -36,11 +36,11 @@ form.querySelector('input[name=pattern-text]').value = pattern;
 let generator, delays;
 
 if (algorithm == 'naive') {
-  let scanner_config = {ignore_full_stop: true, allow_hanging_suffix: true};
+  let scanner_config = {ignore_full_stop: true, allow_hanging_suffix: false};
   delays = {step_delay: 750, match_delay: 2000, final_delay: 4000, mismatch_delay: 2000};
   generator = form_bound_generator(form, (t, p) => pattern_shifts_naive(t, p, scanner_config));
 } else if (algorithm == 'kmp') {
-  let scanner_config = {ignore_full_stop: true, allow_hanging_suffix: true};
+  let scanner_config = {ignore_full_stop: true, allow_hanging_suffix: false};
   delays = {step_delay: 750, match_delay: 2000, final_delay: 4000, jump_delay: 4000};
   generator = form_bound_generator(form, (t, p) => pattern_shifts_kmp(t, p, scanner_config));
 }
