@@ -46,7 +46,7 @@ if (algorithm == 'naive') {
 }
 
 const width = 1000;
-const height = 150;
+const height = 200;
 // document.body.append(svg.node());
 const svg = d3.select("svg")
     .attr("viewBox", [0, 0, width, height]);

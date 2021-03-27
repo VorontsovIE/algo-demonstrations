@@ -59,12 +59,15 @@ let pattern_shifts_naive = function*(text, pattern, config) {
     return result;
   };
   let gen_state = function(start_pos, len_checked, status) {
-    let text_letters = Array.from(text).map(function(val, idx){
-      return {letter: val, position: idx, color: 'white', row: 0};
+    let index_letters = Array.from(text).map(function(val, idx){
+      return {letter: ('' + idx), position: idx, color: 'white', row: 0};
     });
+    let text_letters = Array.from(text).map(function(val, idx){
+      return {letter: val, position: idx, color: 'white', row: 1};
+    });
+    let pattern_letters = gen_pattern_state(start_pos, len_checked, 2);
     return {
-      text_letters: text_letters,
-      pattern_letters: gen_pattern_state(start_pos, len_checked, 1),
+      letters: text_letters.concat(pattern_letters, index_letters),
       status: status,
     };
   };
@@ -120,8 +123,11 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
   config = Object.assign({}, default_config, config);
 
   let pi = prefix_function(pattern);
+  let index_letters = Array.from(text).map(function(val, idx){
+    return {letter: ('' + idx), position: idx, color: 'white', row: 0};
+  });
   let text_letters = Array.from(text).map(function(val, idx){
-    return {letter: val, position: idx, color: 'white', row: 0};
+    return {letter: val, position: idx, color: 'white', row: 1};
   });
 
   let gen_pattern_state = function(start_pos, len_checked, row) {
@@ -150,18 +156,17 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
       let new_len_checked = pi[len_checked];
       let row_1;
       if (status == 'jump_mismatch') {
-        row_1 = gen_pattern_state(start_pos, len_checked + 1, 1);
+        row_1 = gen_pattern_state(start_pos, len_checked + 1, 2);
       } else {
-        row_1 = gen_pattern_state(start_pos, len_checked, 1);
+        row_1 = gen_pattern_state(start_pos, len_checked, 2);
       }
-      let row_2 = gen_pattern_state(pos - new_len_checked, new_len_checked, 2);
+      let row_2 = gen_pattern_state(pos - new_len_checked, new_len_checked, 3);
       pattern_letters = row_1.concat(row_2);
     } else {
-      pattern_letters = gen_pattern_state(start_pos, len_checked, 1);
+      pattern_letters = gen_pattern_state(start_pos, len_checked, 2);
     }
     return {
-      text_letters: text_letters,
-      pattern_letters: pattern_letters,
+      letters: text_letters.concat(pattern_letters, index_letters),
       status: status,
     };
   };
@@ -214,7 +219,7 @@ let render_sliding_pattern = async function(svg_node, generator, config) {
       await sleepNow(config.final_delay)
       continue;
     }
-    let letters = state.text_letters.concat(state.pattern_letters);
+    let letters = state.letters;
     render_text(svg_node, letters);
     if (state.status == 'step' && config.step_delay) {
       await sleepNow(config.step_delay);
