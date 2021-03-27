@@ -3,8 +3,6 @@ const d3 = Object.assign(
   require("d3-selection"),
 );
 
-let cloneDeep = require('lodash.clonedeep');
-
 let render_text = function(node, letter_params) {
   let draw_letter = function(g) {
     g.attr("transform", d => `translate(${d.position * 30} ${40 * d.row})`);
