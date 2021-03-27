@@ -61,16 +61,15 @@ let pattern_shifts_naive = function*(text, pattern, config) {
     return result;
   };
   let gen_state = function(start_pos, len_checked, status) {
+    let text_letters = Array.from(text).map(function(val, idx){
+      return {letter: val, position: idx, color: 'white', row: 0};
+    });
     return {
       text_letters: text_letters,
       pattern_letters: gen_pattern_state(start_pos, len_checked, 1),
       status: status,
     };
   };
-
-  let text_letters = Array.from(text).map(function(val, idx){
-    return {letter: val, position: idx, color: 'white', row: 0};
-  });
 
   yield gen_state(0, 0, 'start');
   let full_stop = false;
@@ -81,14 +80,10 @@ let pattern_shifts_naive = function*(text, pattern, config) {
     if (!config.allow_hanging_suffix && (start_pos + pattern.length > text.length)) {
       break
     }
-    let pattern_letters = Array.from(pattern).map(function(val, idx){
-      return {letter: val, position: start_pos + idx, color: 'white', row: 1};
-    });
     yield gen_state(start_pos, 0, 'start');
 
     let mismatch = false;
     for (let offset = 0; !mismatch && (offset < pattern.length); ++offset){
-      pattern_letters = cloneDeep(pattern_letters);
       if (text[start_pos + offset] != pattern[offset]) {
         mismatch = true;
       }
