@@ -152,7 +152,7 @@ let pattern_shifts_kmp = function*(text, pattern) {
       len_matched = len_matched + 1;
     }
 
-    if (len_matched == pattern.length) { // TO CHECK!!!
+    if (len_matched == pattern.length) {
       yield gen_state(start_pos, len_matched, 'match');
       len_matched = pi[len_matched];
       start_pos = pos - len_matched;
@@ -161,14 +161,14 @@ let pattern_shifts_kmp = function*(text, pattern) {
 }
 
 
-let render_sliding_pattern = async function(text_node, pattern_node, generator, config) {
+let render_sliding_pattern = async function(svg_node, generator, config) {
   for (let state of generator) {
     if (state.status == 'end_loop') {
       await sleepNow(config.final_delay)
       continue;
     }
-    render_text(text_node, state.text_letters);
-    render_text(pattern_node, state.pattern_letters);
+    let letters = state.text_letters.concat(state.pattern_letters);
+    render_text(svg_node, letters);
     if (state.status == 'start' || state.status == 'step') {
       await sleepNow(config.step_delay);
     } else if (state.status == 'match') {
@@ -184,12 +184,8 @@ let render_sliding_pattern = async function(text_node, pattern_node, generator, 
 let search_demo = async function(svg, generator, config) {
   let default_config = {step_delay: 750, match_delay: 2000, final_delay: 4000, jump_delay: 4000};
   config = Object.assign(default_config, config);
-
-  let text_node = svg.append("g").attr('id', 'main-text');
-  let pattern_node = svg.append("g").attr('id', 'pattern-text');
-
   while (true) {
-    await render_sliding_pattern(text_node, pattern_node, generator, config);
+    await render_sliding_pattern(svg, generator, config);
   }
 }
 
