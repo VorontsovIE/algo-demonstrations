@@ -207,6 +207,12 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
       yield gen_state(start_pos, len_matched, 'jump_match');
       len_matched = pi[len_matched];
       start_pos = pos - len_matched + 1;
+      if (!config.allow_hanging_suffix && start_pos + pattern.length > text.length) {
+        return;
+      }
+      if (start_pos >= text.length) {
+        return;
+      }
       yield gen_state(start_pos, len_matched, 'step');
     }
   }
