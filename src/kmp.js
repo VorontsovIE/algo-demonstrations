@@ -39,35 +39,67 @@ let render_text = function(node, letter_params) {
 
 const sleepNow = (delay) => new Promise(resolve => setTimeout(resolve, delay));
 
-let pattern_shifts_naive = function*(text, pattern) {
+let pattern_shifts_naive = function*(text, pattern, config) {
+  let default_config = {ignore_full_stop: false, allow_hanging_suffix: false};
+  config = Object.assign({}, default_config, config);
+
+  let gen_pattern_state = function(start_pos, len_checked, row) {
+    let result = Array.from(pattern).map(function(val, idx){
+      let letter_pos = start_pos + idx;
+      let letter_color;
+      if (idx < len_checked) {
+        if (pattern[idx] == text[letter_pos]) {
+          letter_color = 'lightgreen';
+        } else {
+          letter_color = 'pink';
+        }
+      } else {
+        letter_color = 'white';
+      }
+      return {letter: val, position: letter_pos, color: letter_color, row: row};
+    });
+    return result;
+  };
+  let gen_state = function(start_pos, len_checked, status) {
+    return {
+      text_letters: text_letters,
+      pattern_letters: gen_pattern_state(start_pos, len_checked, 1),
+      status: status,
+    };
+  };
+
   let text_letters = Array.from(text).map(function(val, idx){
     return {letter: val, position: idx, color: 'white', row: 0};
   });
 
+  yield gen_state(0, 0, 'start');
   let full_stop = false;
-  for (let start_pos = 0; !full_stop && (start_pos + pattern.length <= text.length); ++start_pos) {
+  for (let start_pos = 0; start_pos < text.length; ++start_pos) {
+    if (!config.ignore_full_stop && full_stop) {
+      break
+    }
+    if (!config.allow_hanging_suffix && (start_pos + pattern.length > text.length)) {
+      break
+    }
     let pattern_letters = Array.from(pattern).map(function(val, idx){
       return {letter: val, position: start_pos + idx, color: 'white', row: 1};
     });
-
-    yield {text_letters: text_letters, pattern_letters: pattern_letters, status: 'start'};
+    yield gen_state(start_pos, 0, 'start');
 
     let mismatch = false;
     for (let offset = 0; !mismatch && (offset < pattern.length); ++offset){
       pattern_letters = cloneDeep(pattern_letters);
-      if (text[start_pos + offset] == pattern[offset]) {
-        pattern_letters[offset].color = 'lightgreen';
-      } else {
-        pattern_letters[offset].color = 'pink';
+      if (text[start_pos + offset] != pattern[offset]) {
         mismatch = true;
       }
 
       if ((offset + 1 == pattern.length) && !mismatch) {
-        stop = true;
-        full_stop = true;
-        yield {text_letters: text_letters, pattern_letters: pattern_letters, status: 'match'};
+        if (!config.ignore_full_stop) {
+          full_stop = true;
+        }
+        yield gen_state(start_pos, offset + 1, 'match');
       } else{
-        yield {text_letters: text_letters, pattern_letters: pattern_letters, status: 'step'};
+        yield gen_state(start_pos, offset + 1, mismatch ? 'mismatch' : 'step');
       }
     }
   }
@@ -90,7 +122,10 @@ let prefix_function = function(s) {
 }
 
 
-let pattern_shifts_kmp = function*(text, pattern) {
+let pattern_shifts_kmp = function*(text, pattern, config) {
+  let default_config = {ignore_full_stop: false, allow_hanging_suffix: false};
+  config = Object.assign({}, default_config, config);
+
   let pi = prefix_function(pattern);
   let text_letters = Array.from(text).map(function(val, idx){
     return {letter: val, position: idx, color: 'white', row: 0};
@@ -154,6 +189,10 @@ let pattern_shifts_kmp = function*(text, pattern) {
 
     if (len_matched == pattern.length) {
       yield gen_state(start_pos, len_matched, 'match');
+      if (!config.ignore_full_stop) {
+        return;
+      }
+      yield gen_state(start_pos, len_matched, 'jump');
       len_matched = pi[len_matched];
       start_pos = pos - len_matched;
     }
@@ -169,12 +208,16 @@ let render_sliding_pattern = async function(svg_node, generator, config) {
     }
     let letters = state.text_letters.concat(state.pattern_letters);
     render_text(svg_node, letters);
-    if (state.status == 'start' || state.status == 'step') {
+    if (state.status == 'step' && config.step_delay) {
       await sleepNow(config.step_delay);
-    } else if (state.status == 'match') {
+    } else if (state.status == 'match' && config.match_delay) {
       await sleepNow(config.match_delay);
-    } else if (state.status == 'jump') {
+    } else if (state.status == 'mismatch' && config.mismatch_delay) {
+      await sleepNow(config.mismatch_delay);
+    } else if (state.status == 'jump' && config.jump_delay) {
       await sleepNow(config.jump_delay);
+    } else if (state.status == 'start' && config.start_delay) {
+      await sleepNow(config.start_delay);
     } else { // in case that we introduce novel status
       await sleepNow(config.step_delay);
     }
@@ -183,7 +226,7 @@ let render_sliding_pattern = async function(svg_node, generator, config) {
 
 let search_demo = async function(svg, generator, config) {
   let default_config = {step_delay: 750, match_delay: 2000, final_delay: 4000, jump_delay: 4000};
-  config = Object.assign(default_config, config);
+  config = Object.assign({}, default_config, config);
   while (true) {
     await render_sliding_pattern(svg, generator, config);
   }
