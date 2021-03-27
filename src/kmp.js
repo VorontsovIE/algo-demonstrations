@@ -143,11 +143,17 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
   };
 
   let gen_state = function(start_pos, len_checked, status) {
+    // console.log(start_pos, len_checked, status);
     let pattern_letters;
-    if (status == 'jump') {
+    if (status == 'jump_match' || status == 'jump_mismatch') {
       let pos = start_pos + len_checked;
       let new_len_checked = pi[len_checked];
-      let row_1 = gen_pattern_state(start_pos, len_checked, 1);
+      let row_1;
+      if (status == 'jump_mismatch') {
+        row_1 = gen_pattern_state(start_pos, len_checked + 1, 1);
+      } else {
+        row_1 = gen_pattern_state(start_pos, len_checked, 1);
+      }
       let row_2 = gen_pattern_state(pos - new_len_checked, new_len_checked, 2);
       pattern_letters = row_1.concat(row_2);
     } else {
@@ -173,10 +179,15 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
     yield gen_state(start_pos, len_matched + 1, 'step');
 
     while ((len_matched > 0) && (text[pos] != pattern[len_matched])){
-      yield gen_state(pos - len_matched, len_matched, 'jump');
+      start_pos = pos - len_matched;
+      yield gen_state(start_pos, len_matched, 'jump_mismatch');
       len_matched = pi[len_matched];
-      yield gen_state(pos - len_matched, len_matched, 'step');
-      yield gen_state(pos - len_matched, len_matched + 1, 'step');
+      start_pos = pos - len_matched;
+      yield gen_state(start_pos, len_matched, 'step');
+      if (!config.allow_hanging_suffix && start_pos + pattern.length > text.length) {
+        return;
+      }
+      yield gen_state(start_pos, len_matched + 1, 'step');
     }
 
     if (text[pos] == pattern[len_matched]) {
@@ -188,7 +199,7 @@ let pattern_shifts_kmp = function*(text, pattern, config) {
       if (!config.ignore_full_stop) {
         return;
       }
-      yield gen_state(start_pos, len_matched, 'jump');
+      yield gen_state(start_pos, len_matched, 'jump_match');
       len_matched = pi[len_matched];
       start_pos = pos - len_matched + 1;
       yield gen_state(start_pos, len_matched, 'step');
@@ -211,7 +222,7 @@ let render_sliding_pattern = async function(svg_node, generator, config) {
       await sleepNow(config.match_delay);
     } else if (state.status == 'mismatch' && config.mismatch_delay) {
       await sleepNow(config.mismatch_delay);
-    } else if (state.status == 'jump' && config.jump_delay) {
+    } else if ((state.status == 'jump_match' || state.status == 'jump_mismatch') && config.jump_delay) {
       await sleepNow(config.jump_delay);
     } else if (state.status == 'start' && config.start_delay) {
       await sleepNow(config.start_delay);
